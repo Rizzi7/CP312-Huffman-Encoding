@@ -57,29 +57,33 @@ void decode_text(T_Node *root, char *encoded_text, char *decoded_text) {
     decoded_text[j] = '\0';
 }
 
-void read_tree_file(char *filename, T_Node **root) {
+T_Node* deserialize_tree(FILE *fp) {
+    char ch;
+    if (fscanf(fp, " %c", &ch) != 1 || ch == '#') {
+        return NULL;
+    }
+
+    T_Node *node = (T_Node *)malloc(sizeof(T_Node));
+    if (node == NULL) {
+        printf("Memory allocation failed\n");
+        exit(1);
+    }
+
+    node->ch = ch;
+    node->left = deserialize_tree(fp);
+    node->right = deserialize_tree(fp);
+    return node;
+}
+
+T_Node* read_tree_file(char *filename) {
     FILE *fp = fopen(filename, "r");
     if (fp == NULL) {
         printf("Error opening tree file %s\n", filename);
         exit(1);
     }
-
-    int freq[256] = {0};
-    char ch[MAX];
-    int frequency;
-    while (fscanf(fp, "%s %d\n", ch, &frequency) == 2) {
-        if (strcmp(ch, "SPACE") == 0) {
-            freq[' '] = frequency;
-        } else if (strcmp(ch, "NEWLINE") == 0) {
-            freq['\n'] = frequency;
-        } else {
-            freq[(unsigned char)ch[0]] = frequency;
-        }
-    }
+    T_Node *root = deserialize_tree(fp);
     fclose(fp);
-
-    *root = build_huffman_tree(freq);
-    printf("Huffman tree read from file successfully.\n");
+    return root;
 }
 
 void write_decoded_file(char *filename, char *decoded_text) {
@@ -94,6 +98,18 @@ void write_decoded_file(char *filename, char *decoded_text) {
     printf("Decoded text written to file successfully.\n");
 }
 
+void print_tree(T_Node *root, int depth) {
+    if (root == NULL) {
+        for (int i = 0; i < depth; i++) printf("  ");
+        printf("#\n");
+        return;
+    }
+    for (int i = 0; i < depth; i++) printf("  ");
+    printf("%c\n", root->ch);
+    print_tree(root->left, depth + 1);
+    print_tree(root->right, depth + 1);
+}
+
 int main() {
     char encoded_filename[MAX];
     char tree_filename[MAX];
@@ -104,12 +120,15 @@ int main() {
     printf("Enter the name of the tree file: ");
     scanf("%s", tree_filename);
 
-    T_Node *root = NULL;
-    read_tree_file(tree_filename, &root);
+    T_Node *root = read_tree_file(tree_filename);  // Read the Huffman tree from the file
     if (root == NULL) {
         printf("Error reading Huffman tree.\n");
         return 1;
     }
+
+    // Debug print the deserialized tree
+    printf("Deserialized Huffman Tree:\n");
+    print_tree(root, 0);
 
     char *encoded_text = (char *) malloc(MAX * sizeof(char));
     if (encoded_text == NULL) {

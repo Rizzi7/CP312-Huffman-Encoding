@@ -13,7 +13,7 @@
 // Program to encode a message from a .txt file using Variable Length Huffman encoding algorithm 
 // lower case letters, digits, period, comma, space and newline characters
 // Input file: script.txt
-// Output files: encoded.bin, tree.txt
+// Output files: encoded.bin, freq.txt
 // Imports
 #include <stdio.h>
 #include <stdlib.h>
@@ -66,22 +66,6 @@ void find_frequency(char *text, int freq[]) {
             freq[(unsigned char)ch]++;  // Increment frequency of character
         }
     }
-}
-
-// Function to build Huffman tree
-void build_code(T_Node *root, Code codes[], char code[], int index) {
-    if (root == NULL) {
-        return;
-    }
-    if (root->left == NULL && root->right == NULL) {    // If leaf node
-        code[index] = '\0'; // Add null terminator to end of code
-        strcpy(codes[(unsigned char)root->ch].code, code);  // Copy code to codes array
-        return;
-    }
-    code[index] = '0';  // Add 0 to code
-    build_code(root->left, codes, code, index + 1); // Recursively build code for left child
-    code[index] = '1';  // Add 1 to code
-    build_code(root->right, codes, code, index + 1);    // Recursively build code for right child
 }
 
 // Function to build dictionary 
@@ -156,25 +140,23 @@ void write_binary_file(char *filename, char *encoded_text) {
     printf("Encoded text written to file successfully.\n");
 }
 
-void write_tree_file(char *filename, int freq[]) {
+void serialize_tree(T_Node *root, FILE *fp) {
+    if (root == NULL) {
+        fprintf(fp, "# ");
+        return;
+    }
+    fprintf(fp, "%c ", root->ch);
+    serialize_tree(root->left, fp);
+    serialize_tree(root->right, fp);
+}
+
+void write_tree_file(char *filename, T_Node *root) {
     FILE *fp = fopen(filename, "w");
     if (fp == NULL) {
         printf("Error opening file %s\n", filename);
         exit(1);
     }
-
-    for (int i = 0; i < 256; i++) {
-        if (freq[i] > 0) {
-            if (i == ' ') {
-                fprintf(fp, "SPACE %d\n", freq[i]);
-            } else if (i == '\n') {
-                fprintf(fp, "NEWLINE %d\n", freq[i]);
-            } else {
-                fprintf(fp, "%c %d\n", i, freq[i]);
-            }
-        }
-    }
-
+    serialize_tree(root, fp);
     fclose(fp);
     printf("Huffman tree written to file successfully.\n");
 }
@@ -201,25 +183,11 @@ int main() {
         return 1;
     }
 
-    char code[MAX];
-    Code codes[256];
-    for (int i = 0; i < 256; i++) {
-        codes[i].ch = i;
-        codes[i].code[0] = '\0';
-    }
-
-    build_code(root, codes, code, 0);
-
     char *dict[256] = {NULL};
-    char code2[MAX];
-    build_dict(root, code2, 0, dict);
+    char code[MAX];
+    build_dict(root, code, 0, dict);
 
     printf("Dictionary built successfully. Contents:\n");
-    for (int i = 0; i < 256; i++) {
-        if (dict[i] != NULL) {
-            printf("dict[%d] (char '%c'): %s\n", i, i, dict[i]);
-        }
-    }
 
     char *encoded_text = encode_text(text, dict);
     if (encoded_text == NULL) {
@@ -234,7 +202,7 @@ int main() {
     }
 
     write_binary_file("encoded.bin", encoded_text);
-    write_tree_file("tree.txt", freq);
+    write_tree_file("tree.txt", root);  // Save the Huffman tree to a file
 
     free(text);
     free(encoded_text);
