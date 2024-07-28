@@ -74,25 +74,3 @@ T_Node* create_node(char ch, unsigned freq) {
     node->left = node->right = NULL;
     return node;
 }
-
-T_Node* build_huffman_tree(int freq[]) {
-    MinHeap *minHeap = create_min_heap(256);
-    for (int i = 0; i < 256; i++) {
-        if (freq[i] > 0) {
-            T_Node *node = create_node(i, freq[i]);
-            insert_min_heap(minHeap, node);
-        }
-    }
-    build_min_heap(minHeap);
-
-    while (minHeap->size != 1) {
-        T_Node *left = extract_min(minHeap);
-        T_Node *right = extract_min(minHeap);
-        T_Node *top = create_node('\0', left->freq + right->freq);
-        top->left = left;
-        top->right = right;
-        insert_min_heap(minHeap, top);
-    }
-
-    return extract_min(minHeap);
-}

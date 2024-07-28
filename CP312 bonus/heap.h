@@ -31,6 +31,5 @@ T_Node* extract_min(MinHeap *minHeap);
 void insert_min_heap(MinHeap *minHeap, T_Node *node);
 void build_min_heap(MinHeap *minHeap);
 T_Node* create_node(char ch, unsigned freq);
-T_Node* build_huffman_tree(int freq[]);
 
 #endif // HEAP_H
